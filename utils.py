@@ -2,6 +2,8 @@ import os
 import csv
 import copy
 import random
+import math
+import numpy as np
 
 def is_int(x):
     '''
@@ -719,3 +721,47 @@ def equivalent(list1, list2):
     
     # If we got through everything else. Will only happen in list cases.
     return True
+
+
+def get_cutoff_frequencies(values,cutoffs):
+    """ The purpose of this function to calculate the frequencies of values in a column based off of cutoff values.
+    Attributes:
+        - values(list): the list of values which we want to get values from.
+        - cutoffs(list): list of values to have cutoffs
+    Returns:
+        - counts(list): frequencies of values.
+    """
+    counts = [0 for _ in range(len(cutoffs)-1)]
+    for value in values:
+        contains_value = False
+        for i in cutoffs[1:]:
+            if value < i:
+                contains_value= True 
+                counts[cutoffs.index(i)-1] += 1
+                break
+        if not contains_value:
+            counts[-1] += 1
+    return counts
+
+
+def compute_equal_width_cutoffs(values, num_bins):
+    """ Computes where cutoffs should occur based off a desired number of bins and values within a list.
+    Attributes:
+        - values(list): column of values which cutoffs will be created based off
+        - num_bins(int): number of desired bins
+    Returns:
+        - cutoffs(list): list of cutoff values
+    """
+    # first compute the range of the values
+    values_range = max(values) - min(values)
+    bin_width = values_range / num_bins 
+    # bin_width is likely a float
+    # if your application allows for ints, use them
+    # we will use floats
+    # np.arange() is like the built in range() but for floats
+    cutoffs = list(np.arange(min(values), max(values), bin_width)) 
+    cutoffs.append(max(values))
+    # optionally: might want to round
+    cutoffs = [round(cutoff, 2) for cutoff in cutoffs]
+    return cutoffs
+
