@@ -90,6 +90,14 @@ def get_column(table, header, column_id, include_missing_values=True):
     
     return my_column
 
+def drop_column(table, header, column_id):
+    """ Drops a column from the table and returns the result. Self-explanatory."""
+    
+    if isinstance(column_id, str):
+        column_id = header.index(column_id)
+        
+    return [instance[:column_id] + instance[column_id+1:] for instance in table]
+
 def get_mode(my_list):
     """ Gets the mode in a list. Discrete. Defaults to first alphabetically.
     
@@ -630,6 +638,24 @@ def parallel_shuffle(mylists):
     
     return shuffled_lists
 
+def scale_1d(mylist, zero_val=None, one_val=None):
+    """ Scales a 1d list according to the below:"""
+    if zero_val is None and one_val is None:
+        max_val = max(mylist)
+        min_val = min(mylist)
+        
+    elif zero_val is None or one_val is None:
+        raise ValueError("Cannot have one optional arg but not the other.")
+    else:
+        max_val = one_val
+        min_val = zero_val
+        
+    # Scale appropriately
+    for i in range(len(mylist)):
+        mylist[i] = (mylist[i] - min_val) / (max_val - min_val)
+        
+    return min_val, max_val
+
 def scale(mylist, zero_vals=None, one_vals=None):
     """ Scales a 2D list by attribute from 0 to 1
     
@@ -765,5 +791,57 @@ def compute_equal_width_cutoffs(values, num_bins):
     cutoffs = [round(cutoff, 2) for cutoff in cutoffs]
     return cutoffs
 
-
-
+def discretize(data, num_bins, cutoffs=None):
+    """ Discretizes the continuous-valued list given with a modular focus (namely, num_bins)
+    
+    Args:
+        data (list of lists of ordinal): The 2d table to discretize (by each attribute)
+        num_bins (list of natural num): The number of bins for each attribute to be split into
+        cutoffs (list of None or list of ordinal): The override for cutoff points.
+        
+    Returns:
+        list of list of natural num): The discretized data.
+    """
+    # First, we need to check something...
+    assert isinstance(num_bins, list)
+    
+    # Now we can start. First, we use the cutoffs override appropriately to set data intelligently...
+    if cutoffs is None:
+        # The default; We do this manually
+        cutoffs = []
+        for c in range(len(num_bins)):
+            assert num_bins[c] > 0
+            cutoffs.append(copy.deepcopy(compute_equal_width_cutoffs(get_column(data, None, c), num_bins[c])))
+    else:
+        # The given cutoffs
+        # Here, we want to check if at each index of cutoffs:
+        # A) If the index is None, we get it
+        # B) If the num_bins is fine
+        for c in range(len(cutoffs)):
+            if cutoffs[c] is None:
+                cutoffs[c] = copy.deepcopy(compute_equal_width_cutoffs(get_column(data, None, c), num_bins[c]))
+            else:
+                assert len(cutoffs[c]) == num_bins[c] + 1
+                
+    # Before we move forward, I'd like to remove the first and last number in cutoffs; Why?
+    # We may get values that are above or below our maxes and mins as given. As such we want to try and
+    # classify those as respectively the highest and lowest discretization
+    for c in range(len(cutoffs)):
+        cutoffs[c] = cutoffs[c][1:-1]
+                
+    # Okay. Now we have appropriate cutoffs. Let's use them to properly discretize our data.
+    for row in data:
+        for c in range(len(row)):
+            # We have our datapoint...
+            # We need to find what number it belongs to
+            found = False
+            for p in range(len(cutoffs[c])):
+                if not found and row[c] < cutoffs[c][p]:
+                    row[c] = p+1
+                    found = True
+                    
+            if not found:
+                row[c] = len(cutoffs[c])+1
+                
+    return data
+            
