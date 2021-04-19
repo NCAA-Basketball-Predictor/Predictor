@@ -1,0 +1,31 @@
+graph g {
+    att0 [label="Rebound Margin" shape=box];
+    att1 [label="eFG%" shape=box];
+    att2 [label="SPG+BPG" shape=box];
+    att3 [label="1"];
+    att2--att3 [label="1"];
+    att4 [label="1"];
+    att2--att4 [label="2"];
+    att1--att2 [label="1"];
+    att5 [label="SPG+BPG" shape=box];
+    att6 [label="2"];
+    att5--att6 [label="1"];
+    att7 [label="3"];
+    att5--att7 [label="2"];
+    att1--att5 [label="2"];
+    att0--att1 [label="1"];
+    att8 [label="eFG%" shape=box];
+    att9 [label="SPG+BPG" shape=box];
+    att10 [label="3"];
+    att9--att10 [label="1"];
+    att11 [label="4"];
+    att9--att11 [label="2"];
+    att8--att9 [label="1"];
+    att12 [label="SPG+BPG" shape=box];
+    att13 [label="4"];
+    att12--att13 [label="1"];
+    att14 [label="4"];
+    att12--att14 [label="2"];
+    att8--att12 [label="2"];
+    att0--att8 [label="2"];
+}

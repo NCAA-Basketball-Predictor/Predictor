@@ -2,7 +2,6 @@ import os
 import csv
 import copy
 import random
-import math
 import numpy as np
 
 def is_int(x):
@@ -91,12 +90,42 @@ def get_column(table, header, column_id, include_missing_values=True):
     return my_column
 
 def drop_column(table, header, column_id):
-    """ Drops a column from the table and returns the result. Self-explanatory."""
+    """ Drops a column from the table.
     
-    if isinstance(column_id, str):
-        column_id = header.index(column_id)
-        
-    return [instance[:column_id] + instance[column_id+1:] for instance in table]
+    Args:
+        table (list of lists): The table of data to drop
+        header (list of str): The header of that table, giving the column
+            names.
+        column_id (int or str): If a str, the column name to drop.
+            If an int, the column index.
+            
+    Returns:
+        list of obj: The new table
+    
+    Notes:
+       Raises ValueError on invalid column_id
+    """
+    column_num = -1
+    # Check if column_id is an integer
+    if is_int(column_id):
+        if column_id < 0 or (header is not None and column_id >= len(header)): # Out of range
+            raise ValueError
+        else:
+            column_num = column_id
+    else: # its a str
+        for i in range(len(header)):
+            if column_id == header[i]:
+                column_num = i
+                break
+        if column_num == -1: # If unfound
+            raise ValueError
+    
+    # Gets the column
+    new_table = []
+    for row in table:
+        new_table.append(row[:column_num] + row[column_num+1:])
+    
+    return new_table
 
 def get_mode(my_list):
     """ Gets the mode in a list. Discrete. Defaults to first alphabetically.
@@ -131,6 +160,42 @@ def get_mode(my_list):
             max_count = counts[i]
             
     return values[max_index]
+
+def get_modes(my_list):
+    """ Gets the mode(s) in a list. Discrete. Gets a list instead.
+    
+    Args:
+        my_list (list of obj): The list to find from.
+        
+    Returns:
+        list: The modes
+    """
+    assert len(my_list) > 0
+    
+    if len(my_list) == 1:
+        return my_list[0]
+    
+    # The "clean way" to do this involves sorting. We want a linear solution instead.
+    values = []
+    counts = []
+    for item in my_list:
+        if item in values:
+            counts[values.index(item)] += 1
+        else:
+            values.append(item)
+            counts.append(1)
+            
+    # Find the max index
+    max_indices = [0]
+    max_count = counts[0]
+    for i in range(1, len(counts)):
+        if counts[i] > max_count:
+            max_indices = [i]
+            max_count = counts[i]
+        elif counts[i] == max_count:
+            max_indices.append(i)
+            
+    return [values[i] for i in max_indices]
     
 def get_median(my_list):
     """ Gets the median in a list of numeric values.
@@ -221,6 +286,30 @@ def convert_to_numeric(table, table_dimensions=2):
             new_table.append(convert_to_numeric(row, table_dimensions=table_dimensions-1))
     
     return new_table
+
+def convert_to_integer(table, table_dimensions=2):
+    """ Tries to convert every value into an integer where possible
+    
+    Args:
+        table (list of objs): The table to convert. nD List.
+        table_dimensions(int): The dimensions of the input table. Assumes 2-D
+     """
+    if table_dimensions <= 0:
+        return None
+    
+    new_table = []
+    if table_dimensions == 1: # Base case
+        for item in table:
+            if is_int(item):
+                item = int(item)
+                
+            new_table.append(copy.deepcopy(item))
+            
+    else: # Recursive step
+        for row in table:
+            new_table.append(convert_to_integer(row, table_dimensions=table_dimensions-1))
+            
+    return new_table
     
 def convert_to_lexical(table, table_dimensions=2):
     """Converts each value in the table to a lexical type (str).
@@ -301,7 +390,7 @@ def load_from_file(filename):
     header = []
     
     # 1. Open the file
-    with open(filename, 'r', encoding='utf-8-sig') as f:
+    with open(filename, 'r') as f:
         # 2. Parses everything
         filereader = csv.reader(f)
         for row in filereader:
@@ -358,6 +447,51 @@ def get_all_unique_values(my_list):
     unique_vals.sort()
     
     return unique_vals
+
+def group_dict(table, header, attribute, uniques=None, include_indices=False):
+    """ Makes a dictionary of new tables that match a certain attribute.
+    
+    Args:
+        table (list of lists): The data to scan through
+        header (list of str): The column names
+        attribute (str): The column to scan through
+        uniques (list of obj): The list of unique values from the list to grab
+        include_indices (bool): Whether to also include the indices as a return
+        
+    Returns:
+        dictionary of list of lists: A dictionary mapping attribute strs to tables
+    """
+    index_folds = []
+    
+    index = attribute
+    if not isinstance(attribute, int):
+        index = header.index(attribute)
+        
+    # If uniques are not passed in, we get it ourselves
+    if uniques is None:
+        table = transpose(table)
+        uniques = get_all_unique_values(table[index])
+        table = transpose(table)
+        
+    if include_indices:
+        index_folds = [[] for _ in range(len(uniques))]
+        
+    d = {}
+    for u in uniques:
+        d[u] = []
+        
+    for r in range(len(table)):
+        for i in range(len(uniques)):
+            if table[r][index] == uniques[i]:
+                d[uniques[i]].append(copy.deepcopy(table[r][:index] + table[r][index+1:]))
+                if include_indices:
+                    # Gets rid of the att_column
+                    index_folds[i].append(r[:index] + r[index+1:])
+                    
+    if include_indices:
+        return d, index_folds
+    else:
+        return d
 
 def group(table, header, attribute, uniques=None, include_indices=False):
     """ Makes a list of new tables that match a certain attribute.
@@ -638,24 +772,6 @@ def parallel_shuffle(mylists):
     
     return shuffled_lists
 
-def scale_1d(mylist, zero_val=None, one_val=None):
-    """ Scales a 1d list according to the below:"""
-    if zero_val is None and one_val is None:
-        max_val = max(mylist)
-        min_val = min(mylist)
-        
-    elif zero_val is None or one_val is None:
-        raise ValueError("Cannot have one optional arg but not the other.")
-    else:
-        max_val = one_val
-        min_val = zero_val
-        
-    # Scale appropriately
-    for i in range(len(mylist)):
-        mylist[i] = (mylist[i] - min_val) / (max_val - min_val)
-        
-    return min_val, max_val
-
 def scale(mylist, zero_vals=None, one_vals=None):
     """ Scales a 2D list by attribute from 0 to 1
     
@@ -734,10 +850,10 @@ def equivalent(list1, list2):
     """
     
     # Base case
-    if not isinstance(list, list1) and not isinstance(list, list2):
+    if not isinstance(list1, list) and not isinstance(list2, list):
         return type(list1) == type(list2) and list1 == list2
     # Exit case
-    elif not isinstance(list, list1) or not isinstance(list, list2) or len(list1) != len(list2):
+    elif not isinstance(list1, list) or not isinstance(list2, list) or len(list1) != len(list2):
         return False
     # Recursive case
     else:
@@ -747,7 +863,6 @@ def equivalent(list1, list2):
     
     # If we got through everything else. Will only happen in list cases.
     return True
-
 
 def get_cutoff_frequencies(values,cutoffs):
     """ The purpose of this function to calculate the frequencies of values in a column based off of cutoff values.
@@ -787,8 +902,6 @@ def compute_equal_width_cutoffs(values, num_bins):
     # np.arange() is like the built in range() but for floats
     cutoffs = list(np.arange(min(values), max(values), bin_width)) 
     cutoffs.append(max(values))
-    # optionally: might want to round
-    cutoffs = [round(cutoff, 2) for cutoff in cutoffs]
     return cutoffs
 
 def discretize(data, num_bins, cutoffs=None):
@@ -806,7 +919,8 @@ def discretize(data, num_bins, cutoffs=None):
     assert isinstance(num_bins, list)
     
     # Now we can start. First, we use the cutoffs override appropriately to set data intelligently...
-    if cutoffs is None:
+    if not isinstance(cutoffs, list):
+        assert cutoffs is None
         # The default; We do this manually
         cutoffs = []
         for c in range(len(num_bins)):
@@ -817,6 +931,7 @@ def discretize(data, num_bins, cutoffs=None):
         # Here, we want to check if at each index of cutoffs:
         # A) If the index is None, we get it
         # B) If the num_bins is fine
+        assert len(cutoffs) == len(num_bins)
         for c in range(len(cutoffs)):
             if cutoffs[c] is None:
                 cutoffs[c] = copy.deepcopy(compute_equal_width_cutoffs(get_column(data, None, c), num_bins[c]))
@@ -844,4 +959,3 @@ def discretize(data, num_bins, cutoffs=None):
                 row[c] = len(cutoffs[c])+1
                 
     return data
-            

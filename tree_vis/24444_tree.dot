@@ -1,0 +1,7 @@
+graph g {
+    att0 [label="Scoring Margin" shape=box];
+    att1 [label="2"];
+    att0--att1 [label="1"];
+    att2 [label="3"];
+    att0--att2 [label="2"];
+}

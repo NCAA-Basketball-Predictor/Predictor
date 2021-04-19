@@ -1,0 +1,23 @@
+graph g {
+    att0 [label="Scoring Margin" shape=box];
+    att1 [label="1"];
+    att0--att1 [label="1"];
+    att2 [label="1"];
+    att0--att2 [label="2"];
+    att3 [label="2"];
+    att0--att3 [label="3"];
+    att4 [label="SPG+BPG" shape=box];
+    att5 [label="3"];
+    att4--att5 [label="1"];
+    att6 [label="3"];
+    att4--att6 [label="2"];
+    att7 [label="3"];
+    att4--att7 [label="3"];
+    att8 [label="3"];
+    att4--att8 [label="4"];
+    att9 [label="3"];
+    att4--att9 [label="5"];
+    att0--att4 [label="4"];
+    att10 [label="4"];
+    att0--att10 [label="5"];
+}
