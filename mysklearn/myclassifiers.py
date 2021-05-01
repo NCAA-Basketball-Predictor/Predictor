@@ -73,14 +73,12 @@ class MySimpleLinearRegressor:
 
 class MyKNeighborsClassifier:
     """Represents a simple k nearest neighbors classifier.
-
     Attributes:
         n_neighbors(int): number of k neighbors
         X_train(list of list of numeric vals): The list of training instances (samples). 
                 The shape of X_train is (n_train_samples, n_features)
         y_train(list of obj): The target y values (parallel to X_train). 
             The shape of y_train is n_samples
-
     Notes:
         Loosely based on sklearn's KNeighborsClassifier: https://scikit-learn.org/stable/modules/generated/sklearn.neighbors.KNeighborsClassifier.html
         Terminology: instance = sample = row and attribute = feature = column
@@ -88,23 +86,20 @@ class MyKNeighborsClassifier:
     """
     def __init__(self, n_neighbors=3):
         """Initializer for MyKNeighborsClassifier.
-
         Args:
             n_neighbors(int): number of k neighbors
-        """        
+        """
         self.n_neighbors = n_neighbors
         self.X_train = None 
         self.y_train = None
 
     def fit(self, X_train, y_train):
         """Fits a kNN classifier to X_train and y_train.
-
         Args:
             X_train(list of list of numeric vals): The list of training instances (samples). 
                 The shape of X_train is (n_train_samples, n_features)
             y_train(list of obj): The target y values (parallel to X_train)
                 The shape of y_train is n_train_samples
-
         Notes:
             Since kNN is a lazy learning algorithm, this method just stores X_train and y_train
         """
@@ -113,11 +108,9 @@ class MyKNeighborsClassifier:
 
     def kneighbors(self, X_test):
         """Determines the k closes neighbors of each test instance.
-
         Args:
             X_test(list of list of numeric vals): The list of testing samples
                 The shape of X_test is (n_test_samples, n_features)
-
         Returns:
             distances(list of list of float): 2D list of k nearest neighbor distances 
                 for each instance in X_test
@@ -125,154 +118,40 @@ class MyKNeighborsClassifier:
                 indices in X_train (parallel to distances)
         """
         distances = []
-        indices = []
-        
-        # NOTE: I had to upend this implementation for PA5 given the number of merge_sorts we were running.
-        # This should be quicker. It's more quadratic, at least.
-        n = self.n_neighbors
-        
-        # We're going to do two different things given different types of data. Namely,
-        # IF all the data is categorical, we'll use a different strategy.
-        # Here is that strategy in action:
-        categorical = True
-        for att in X_test[0]:
-            if not isinstance(att, str):
-                categorical = False
-                break
-                
-        if categorical:
-            # For each test...
-            for test in X_test:
-                # Create an att+1 list of empty lists
-                indices_by_distances = []
-                for _ in range(len(X_test[0])+1):
-                    indices_by_distances.append([])
-                
-                # For each instance in the training set...
-                for i in range(len(self.X_train)):
-                    # Compute the distance by counting the number of differences.
-                    distance = 0
-                    for att in range(len(test)):
-                        if test[att] != self.X_train[i][att]:
-                            distance += 1
-                    
-                    # Notice we don't take the sqrt, we do that later for posterity
-                    # Add it to the indices list
-                    indices_by_distances[distance].append(i)
-                
-                # Now we start grabbing indices.
-                # We expect the user to have set the seed beforehand
-                k_distances = []
-                k_indices = []
-                
-                distance = 0
-                while len(k_indices) < self.n_neighbors:
-                    if len(indices_by_distances[distance]) == 0:
-                        distance += 1
-                    else:
-                        k_distances.append(distance)
-                        get_index = random.randrange(0, len(indices_by_distances[distance]))
-                        k_indices.append(indices_by_distances[distance][get_index])
-                        indices_by_distances[distance].pop(get_index)
-                        
-                # Finally, we append it to the whole data
-                distances.append(copy.deepcopy(k_distances))
-                indices.append(copy.deepcopy(k_indices))
-        
-        # Otherwise, we know it's continuous in at least one respect. I'll feel better about speed and etc.
-        else:
-            for test in X_test:
-                # Create a parallel list of our closest numbers. Starting point is untoppable.
-                k_distances = [len(test) + 1 for _ in range(n)]
-                k_indices = [-1 for _ in range(n)]
+        neighbor_indices = []
+        for test in X_test:
+            test_distances =[]
+            for train in self.X_train:
+                test_distances.append(myutils.compute_euclidean_distance(test,train))
+            distances.append(test_distances)
+        for test in distances:
+            distance_test = copy.deepcopy(test)
+            test_neighbors = []
+            for _ in range(self.n_neighbors):
+                minimum_distance = min(distance_test)
+                neighbor_index = test.index(minimum_distance)
+                test_neighbors.append(neighbor_index)
+                distance_test.pop(distance_test.index(minimum_distance))
+            neighbor_indices.append(test_neighbors)
+        return distances, neighbor_indices 
 
-                # For each instance in X_train...
-                for i in range(len(self.X_train)):
-                    # Compute the distance
-                    distance = 0
-                    for att in range(len(self.X_train[i])):
-                        # Check for categorical data...
-                        if isinstance(test[att], str):
-                            if test[att] != self.X_train[i][att]:
-                                distance += 1
-                        else:
-                            distance += (test[att] - self.X_train[i][att]) ** 2
-                    distance **= 0.5
-
-                    # Check if/where it should go in our storage...
-                    storage_index = 0
-                    placed = False
-
-                    while not placed and storage_index < n:
-                        if distance < k_distances[storage_index]:
-                            k_distances.insert(storage_index, distance)
-                            k_distances = k_distances[:-1]
-                            k_indices.insert(storage_index, i)
-                            k_indices = k_indices[:-1]
-                            placed = True
-                        else:
-                            storage_index += 1
-
-                distances.append(copy.deepcopy(k_distances))
-                indices.append(copy.deepcopy(k_indices))
-            
-        return distances, indices
-        
     def predict(self, X_test):
         """Makes predictions for test instances in X_test.
-
         Args:
             X_test(list of list of numeric vals): The list of testing samples
                 The shape of X_test is (n_test_samples, n_features)
-
+                
         Returns:
             y_predicted(list of obj): The predicted target y values (parallel to X_test)
         """
         y_predicted = []
-        
-        # We'll use our previous implementation. 
-        distances, indices = self.kneighbors(X_test)
-        
-        # Now we need to gather all the available unique class labels as given by y_train.
-        unique_classes = myutils.get_all_unique_values(self.y_train)
+        indicies = self.kneighbors(X_test)[1]
         for i in range(len(X_test)):
-            classes_count = []
-            
-            for classification in unique_classes:
-                classes_count.append(0)
-            
-            # Count each classification
-            for index in indices[i]:
-                for j in range(len(unique_classes)):
-                    if self.y_train[index] == unique_classes[j]:
-                        classes_count[j] += 1
-            
-            # Going to use the closest point to break ties
-            most_classes = []
-            most_count = 0
-            
-            for j in range(len(classes_count)):
-                if classes_count[j] > most_count:
-                    most_classes.clear()
-                    most_count = classes_count[j]
-                    most_classes.append(unique_classes[j])
-                elif classes_count[j] == most_count:
-                    most_classes.append(unique_classes[j])
-                    
-            class_to_add = most_classes[0]
-            if len(most_classes) > 1:
-                tieb = 0
-                found = False
-                while found is False:
-                    if self.y_train[indices[i][tieb]] in most_classes:
-                        found = True
-                        class_to_add = self.y_train[indices[i][tieb]]
-                    else:
-                        tieb += 1
-                # This should never run out of indices.
-                
-            y_predicted.append(copy.deepcopy(class_to_add))
-            
+            classes = [self.y_train[x] for x in indicies[i]]
+            values,value_counts = myutils.get_frequencies(classes)
+            max_value = max(value_counts)
+            max_value_index = value_counts.index(max_value)
+            y_predicted.append(values[max_value_index])
         return y_predicted
 
 class MyNaiveBayesClassifier:

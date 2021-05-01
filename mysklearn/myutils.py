@@ -959,3 +959,41 @@ def discretize(data, num_bins, cutoffs=None):
                 row[c] = len(cutoffs[c])+1
                 
     return data
+
+def compute_euclidean_distance(v1, v2):
+    """ The purpose of this function is to compute the euclidean distance of two given values
+    Args:
+        - v1(int,float or string): x1 value
+        - v2(int,float, or string): x2 value
+    Returns:
+        - dist(float): distance between two values
+    """
+    assert len(v1) == len(v2)
+    dist = 0
+    if isinstance(v1[0],str) and isinstance(v2[0],str):
+        for i in range(len(v1)):
+            if v1[i] == v2[i]:
+                dist += 0
+            elif v1[i] != v2[i]:
+                dist += 1
+    else:
+        dist = np.sqrt(sum([(v1[i] - v2[i]) ** 2 for i in range(len(v1))]))
+    return dist 
+
+def get_frequencies(column):
+    """ The purpose of this function is to get the count for how many times a value appeaars in a given column.
+    Attributes:
+        - column(list): a list of values in a column which will be checked for values and frequencies.
+    Returns:
+        - values, counts(tuple of lists): a tuple containing the values within a column and their associated frequencies. 
+    """
+    values = []
+    counts = []
+    column.sort()
+    for value in column:
+        if value not in values:
+            values.append(value)
+            counts.append(1)
+        else:
+            counts[-1] += 1
+    return values, counts
