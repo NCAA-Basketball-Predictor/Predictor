@@ -712,13 +712,12 @@ class MyDecisionTreeClassifier:
                         # We'll find the correct Value node; The for loop is cut short
                         for i in range(2, len(tree)):
                             value_node = tree[i]
-                            # If the attribute value matches.../
+                            # If the attribute value matches...
                             if value_node[1] == test[index]:
                                 # Recurse
                                 return rec_predict(value_node[2], test)
-                            
-                        # If we haven't found it we get a Value Error
-                        raise ValueError
+                        # If we didn't find it, we'll guess...
+                        return rec_predict(tree[random.randrange(2, len(tree))][2], test)
                             
         y_pred = []
         for test in X_test:
@@ -859,3 +858,177 @@ class MyDecisionTreeClassifier:
         # Command line shenanigans for dot->pdf
         cmd = "dot -Tpdf -o %s %s" % (pdf_fname, dot_fname)
         os.popen(cmd)
+        
+class MyRandomForestClassifier:
+    """ Random Forest implementation, using the differentiation of datasets.
+    
+    Attributes:
+        X_train: The dataset to use
+        y_train: The classifications upon that dataset
+        trees (lists of nested list): The trees we use.
+        validations (list of 2-tuple of int): The accuracy of the dataset given the
+        respective validation set
+    """
+    def __init__(self):
+        self.X_train = None
+        self.y_train = None
+        self.trees = None
+        self.validations = None
+        
+    def fit(self, X_train, y_train, n_trees=50, min_atts=1):
+        """ Fits the data and creates n_trees trees.
+        
+        Args:
+            X_train: The dataset to use
+            y_train: The classifications upon that dataset
+            n_trees: The number of trees to use
+            min_atts: The minimum number of attributes to run the test upon.
+            
+        Notes:
+            Set the random seed before use.
+        """
+        # A few assertions...
+        assert len(X_train) > 0 and len(X_train) == len(y_train)
+        
+        self.X_train = X_train
+        self.y_train = y_train
+        
+        # We're going to call the previous classifier to generate trees
+        # upon different subsets of data.
+        
+        # Step 1: Setup
+        # Get the number of attributes given in X_train...
+        num_atts = len(X_train[0])
+        assert min_atts <= num_atts
+        
+        # We need to get the powerset here, but only of the min_atts
+        atts = [i for i in range(num_atts)]
+        
+        # We'll use a single classifier, reused. Copying each iteration
+        my_dt = MyDecisionTreeClassifier()
+        
+        # Now, for the main loop...
+        self.trees = []
+        self.validations = []
+        for _ in range(n_trees):
+            # Step 2: Randomize...
+            # 2a. ... the dataset
+            # We'll use the bootstrap method here
+            train_indices = []
+            for _ in range(len(X_train)):
+                train_indices.append(random.randrange(len(X_train)))
+                
+            # Make it non-duplicate-filled...
+            train_indices = list(set(train_indices))
+            
+            # Check if each index is in. If not, validation set.
+            validation_indices = []
+            for i in range(len(X_train)):
+                if i not in train_indices:
+                    validation_indices.append(i)
+                    
+            # 2b. ... the attributes
+            # I'm using a weird randomization method here to avoid powerset shenanigans...
+            # I want trees with more attributes to be more prevelent, so here's the procedure:
+            
+            # 1. Set n to num_atts
+            # 2. If n == min_atts, return the current atts
+            # 3. Flip a coin, heads or tails
+            # 4. If heads, return the current attributes
+            # 5. Otherwise:
+            # 6.   Remove a random attribute from the list
+            # 7.   n -= 1
+            # 8.   Repeat from Step 2 onwards
+            
+            # Here we go...
+            # Step 1
+            curr_atts = copy.deepcopy(atts)
+            # Step 2
+            while len(curr_atts) > min_atts:
+                # Step 3
+                flip = random.randrange(2)
+                # Step 4
+                if flip == 0:
+                    break
+                
+                # Step 5 onward
+                curr_atts.remove(curr_atts[random.randrange(len(curr_atts))])
+                
+            # Step 3: Construct data
+            # Our randomization is complete. Let's construct X_ and y_train.
+            sub_X_train = []
+            sub_y_train = []
+            for index in train_indices:
+                sub_X_train.append(X_train[index])
+                sub_y_train.append(y_train[index])
+                
+            # Don't forget about atts! I defined a myutils function...
+            sub_X_train = myutils.get_subtable(sub_X_train, curr_atts)
+            
+            # Step 4: Construct a new tree
+            my_dt.fit(sub_X_train, sub_y_train)
+            self.trees.append(copy.deepcopy(my_dt))
+            
+            # We'll also run evaluation upon the validation set to record an accuracy...
+            sub_X_val = []
+            sub_y_val = []
+            for index in validation_indices:
+                sub_X_val.append(X_train[index])
+                sub_y_val.append(y_train[index])
+                
+            sub_y_pred = my_dt.predict(sub_X_val)
+            
+            # I don't like tuples, so I'll use a list
+            eval = [0, 0]
+            for i in range(len(sub_y_pred)):
+                eval[1] += 1
+                if sub_y_val[i] == sub_y_pred[i]:
+                    eval[0] += 1
+            
+            self.validations.append(copy.deepcopy(eval))
+            
+        # Step 5: Profit
+        # TODO
+        
+    def predict(self, X_test, weighted=False):
+        """ Predicts classifications upon the classifier.
+        
+        Args:
+            X_test (list of lists): The data to test on
+            weighted (bool): Whether or not to weight the classifications by validation success.
+            
+        Returns:
+            y_pred (list of class): The classification predictions
+        """
+        
+        # We need to perform voting here...
+        # Step 1: Know thy data
+        # We'll grab the possible classifications from y_train
+        classes = myutils.get_all_unique_values(self.y_train)
+        classes.sort()
+        # And add a list of floats for counting...
+        counts = [[0.0 for i in classes] for j in range(len(X_test))]
+        
+        # Step 2: Vote
+        for dt in range(len(self.trees)):
+            preds = self.trees[dt].predict(X_test)
+            for i in range(len(preds)):
+                if weighted and self.validations[i][1] > 0:
+                    counts[i][classes.index(preds[i])] += self.validations[i][0] / self.validations[i][1]
+                else:
+                    counts[i][classes.index(preds[i])] += 1
+        
+        for t in range(len(counts)):
+            max_index = 0
+            max_count = counts[t][0]
+            
+            for i in range(1, len(classes)):
+                if counts[t][i] > max_count:
+                    max_index = i
+                    max_count = counts[t][i]
+                    
+            counts[t] = classes[max_index]
+            
+        # Return
+        return counts
+            

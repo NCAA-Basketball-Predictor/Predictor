@@ -997,3 +997,26 @@ def get_frequencies(column):
         else:
             counts[-1] += 1
     return values, counts
+
+def get_subtable(table, column_ids, header=None):
+    """ Gets the subtable of table given the given column indices or names
+    Args:
+        table: The table to get from
+        column_ids (ints or strs): The identifiers for the columns to attach
+        header: The header to search through if the above is given as strings
+    Returns:
+        a copy of the table but with only the given atts
+    """
+    # Parses if given as strings
+    if isinstance(column_ids[0], str):
+        for i in range(len(column_ids)):
+            column_ids[i] = header.index(column_ids[i])
+        
+    copy_table = copy.deepcopy(table)
+    copy_table = transpose(copy_table)
+    new_table = []
+    
+    for num in column_ids:
+        new_table.append(copy_table[num])
+    
+    return transpose(new_table)
