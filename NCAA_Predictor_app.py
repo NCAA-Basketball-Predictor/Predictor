@@ -1,7 +1,19 @@
 # we are going to use Flask, a micro web framework
 import os
+import importlib
 import pickle 
 from flask import Flask, jsonify, request 
+import mysklearn.myutils
+importlib.reload(mysklearn.myutils)
+import mysklearn.myutils as myutils
+import mysklearn.myclassifiers
+importlib.reload(mysklearn.myclassifiers)
+from mysklearn.myclassifiers import MyRandomForestClassifier
+import mysklearn.myevaluation
+importlib.reload(mysklearn.myevaluation)
+import mysklearn.myevaluation as myevaluation
+import copy
+import random
 
 # make a Flask app
 app = Flask(__name__)
@@ -13,22 +25,23 @@ def index():
     # return content and a status code
     return "<h1>Welcome to my App</h1>", 200
 
+# Scoring Margin,eFG%,SPG+BPG,Rebound Margin,Win Percentage
 # one for the /predict 
 @app.route("/predict", methods=["GET"])
 def predict():
     # goal is to extract the 4 attribute values from query string
     # use the request.args dictionary
-    level = request.args.get("level", "")
-    lang = request.args.get("lang", "")
-    tweets = request.args.get("tweets", "")
-    phd = request.args.get("phd", "")
-    print("level:", level, lang, tweets, phd)
+    Scoring_Margin = request.args.get("Scoring Margin", "")
+    efg = request.args.get("eFG%", "")
+    spg_bpg = request.args.get("SPG+BPG", "")
+    rebound_margin = request.args.get("Rebound Margin", "")
+    print("level:", Scoring_Margin, efg, spg_bpg, rebound_margin)
     # task: extract the remaining 3 args
 
     # get a prediction for this unseen instance via the tree
     # return the prediction as a JSON response
 
-    prediction = predict_interviews_well([level, lang, tweets, phd])
+    prediction = predict_winning_percentage_well([Scoring_Margin, efg, spg_bpg, rebound_margin])
     # if anything goes wrong, predict_interviews_well() is going to return None
     if prediction is not None:
         result = {"prediction": prediction}
@@ -37,36 +50,45 @@ def predict():
         # failure!!
         return "Error making prediction", 400
 
-def tdidt_predict(header, tree, instance):
-    info_type = tree[0]
-    if info_type == "Attribute":
-        attribute_index = header.index(tree[1])
-        instance_value = instance[attribute_index]
-        # now I need to find which "edge" to follow recursively
-        for i in range(2, len(tree)):
-            value_list = tree[i]
-            if value_list[1] == instance_value:
-                # we have a match!! recurse!!
-                return tdidt_predict(header, value_list[2], instance)
-    else: # "Leaf"
-        return tree[1] # leaf class label
+def predict_winning_percentage_well(instance):
+    header, data = myutils.load_from_file("input_data/NCAA_Statistics_24444.csv")
+    random.seed(15)
 
-def predict_interviews_well(instance):
-    # 1. we need to a tree (and its header)
-    # we need to save a trained model (fit()) to a file
-    # so we can load that file into memory in another python
-    # process as a python object (predict())
-    # import pickle and "load" the header and interview tree 
-    # as Python objects we can use for step 2
-    infile = open("tree.p", "rb")
-    header, tree = pickle.load(infile)
-    infile.close()
-    print("header:", header)
-    print("tree:", tree)
+    # Now, we can move to create some decision trees. Let's first create trees over the whole dataset, then
+    # test upon our stratisfied k-fold splitting method.
+
+    class_col = myutils.get_column(data, header, "Win Percentage")
+    data = myutils.drop_column(data, header, "Win Percentage")
+    data = myutils.drop_column(data, header, "Scoring Margin")
+    atts = header[1:-1]
+
+    X_indices = range(len(class_col))
+    X_train_folds, X_test_folds = myevaluation.stratified_kfold_cross_validation(X_indices, class_col, n_splits=10)
+
+    my_rf = MyRandomForestClassifier()
+    for fold_index in range(len(X_train_folds)):
+        X_train = []
+        X_test = []
+        y_train = []
+        y_test = []
+        
+        for train_index in X_train_folds[fold_index]:
+            X_train.append(copy.deepcopy(data[train_index]))
+            y_train.append(copy.deepcopy(class_col[train_index]))
+            
+        for test_index in X_test_folds[fold_index]:
+            X_test.append(copy.deepcopy(data[test_index]))
+            y_test.append(copy.deepcopy(class_col[test_index]))
+            
+        # Get a classifier in here...
+
+    # Fitting...
+        my_rf.fit(X_train, y_train, n_trees=50, m_trees=10, min_atts=2)
+    # ... and predicting!
 
     # 2. use the tree to make a prediction
     try: 
-        return tdidt_predict(header, tree, instance) # recursive function
+        return my_rf.predict(instance) # recursive function
     except:
         return None
 
