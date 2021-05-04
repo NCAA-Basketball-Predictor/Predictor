@@ -875,7 +875,7 @@ class MyRandomForestClassifier:
         self.trees = None
         self.validations = None
         
-    def fit(self, X_train, y_train, n_trees=50, min_atts=1):
+    def fit(self, X_train, y_train, n_trees=50, m_trees=None, min_atts=1):
         """ Fits the data and creates n_trees trees.
         
         Args:
@@ -978,17 +978,34 @@ class MyRandomForestClassifier:
                 
             sub_y_pred = my_dt.predict(sub_X_val)
             
-            # I don't like tuples, so I'll use a list
+            # I don't like tuples, so I'll use a list.
+            # UPDATE: Just using floats
             eval = [0, 0]
             for i in range(len(sub_y_pred)):
                 eval[1] += 1
                 if sub_y_val[i] == sub_y_pred[i]:
                     eval[0] += 1
             
+            if eval[1] == 0:
+                eval = 0.0
+            else:
+                eval = eval[0] / eval[1]
+            
             self.validations.append(copy.deepcopy(eval))
             
-        # Step 5: Profit
-        # TODO
+        # Step 5: Gather experts
+        # We need to only include the m trees with the best validity... if m isn't None
+        if m_trees is None:
+            return
+        
+        # Create a list of indices and evals, then sort
+        evals = [[copy.deepcopy(self.validations[i]), copy.deepcopy(self.trees[i])] for i in range(len(self.validations))]
+        myutils.merge_sort(evals, sort_on=0, parallel_lists=True, mode="desc_left")
+        self.trees = []
+        self.validations = []
+        for i in range(m_trees):
+            self.trees.append(evals[i][1])
+            self.validations.append(evals[i][0])
         
     def predict(self, X_test, weighted=False):
         """ Predicts classifications upon the classifier.
@@ -1013,8 +1030,8 @@ class MyRandomForestClassifier:
         for dt in range(len(self.trees)):
             preds = self.trees[dt].predict(X_test)
             for i in range(len(preds)):
-                if weighted and self.validations[i][1] > 0:
-                    counts[i][classes.index(preds[i])] += self.validations[i][0] / self.validations[i][1]
+                if weighted:
+                    counts[i][classes.index(preds[i])] += self.validations[i]
                 else:
                     counts[i][classes.index(preds[i])] += 1
         
