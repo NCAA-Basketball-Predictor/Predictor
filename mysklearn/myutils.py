@@ -762,6 +762,39 @@ def merge_sort(mylist, sort_on=None, parallel_lists=False, mode="asc_left", star
     merge_sort(mylist, sort_on=sort_on, parallel_lists=parallel_lists, mode=mode, start=start, end=mid)
     merge_sort(mylist, sort_on=sort_on, parallel_lists=parallel_lists, mode=mode, start=mid+1, end=end)
     merge(mylist, start, mid, end, sort_on=sort_on, parallel_lists=parallel_lists, mode=mode)
+
+
+def normalize_data(data):
+    """ The purpose of this function is to scale a tuple value pair
+    Args:
+        - data(list of int): data to be scaled
+    Returns:
+        - data_normalized(list of int): scaled data.
+    """
+    data_normalized = []
+    x,y = split_data(data)
+    min_x = min(x)
+    max_x = max(x)
+    min_y = min(y)
+    max_y = max(y)
+
+    for i in range(len(x)):
+        data_normalized.append(
+            [
+                (x[i] - min_x) / (max_x - min_x),
+                (y[i] - min_y) / (max_y - min_y)
+            ]
+        )
+    return data_normalized
+
+def split_data(data):
+    x = []
+    y = []
+    for value in data:
+        x.append(value[0])
+        y.append(value[1])
+    return x,y
+
         
 def parallel_shuffle(mylists):
     """ Shuffles parallel lists together
