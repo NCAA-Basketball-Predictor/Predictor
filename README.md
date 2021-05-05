@@ -31,6 +31,7 @@ e.g. /predict?Scoring_Margin=1&efg=2&spg_bpg=2&rebound_margin=2
 * NCAA_Predictor: Creates the server
 * norm_and_disc.ipynb: normalizing and discretizing the data
 * random_forest.ipynb: testing random forest
+* unit_tests.ipynb: Unit tests for knn and decision trees
 
 ## Folders
 * **input_data:** 
