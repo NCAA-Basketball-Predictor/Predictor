@@ -50,47 +50,32 @@ def predict():
         # failure!!
         return "Error making prediction", 400
 
+def tdidt_predict(header, tree, instance):
+    info_type = tree[0]
+    if info_type == "Attribute":
+        attribute_index = header.index(tree[1])
+        instance_value = instance[attribute_index]
+        # now I need to find which "edge" to follow recursively
+        for i in range(2, len(tree)):
+            value_list = tree[i]
+            if value_list[1] == instance_value:
+                # we have a match!! recurse!!
+                return tdidt_predict(header, value_list[2], instance)
+    else: # "Leaf"
+        return tree[1] # leaf class label
+
+
 def predict_winning_percentage_well(instance):
-    header, data = myutils.load_from_file("input_data/NCAA_Statistics_24444.csv")
-    random.seed(15)
-
-    # Now, we can move to create some decision trees. Let's first create trees over the whole dataset, then
-    # test upon our stratisfied k-fold splitting method.
-
-    class_col = myutils.get_column(data, header, "Win Percentage")
-    data = myutils.drop_column(data, header, "Win Percentage")
-    data = myutils.drop_column(data, header, "Scoring Margin")
-    atts = header[1:-1]
-
-    X_indices = range(len(class_col))
-    X_train_folds, X_test_folds = myevaluation.stratified_kfold_cross_validation(X_indices, class_col, n_splits=10)
-
-    my_rf = MyRandomForestClassifier()
-    for fold_index in range(len(X_train_folds)):
-        X_train = []
-        X_test = []
-        y_train = []
-        y_test = []
-        
-        for train_index in X_train_folds[fold_index]:
-            X_train.append(copy.deepcopy(data[train_index]))
-            y_train.append(copy.deepcopy(class_col[train_index]))
-            
-        for test_index in X_test_folds[fold_index]:
-            X_test.append(copy.deepcopy(data[test_index]))
-            y_test.append(copy.deepcopy(class_col[test_index]))
-            
-        # Get a classifier in here...
-
-    # Fitting...
-        my_rf.fit(X_train, y_train, n_trees=50, m_trees=10, min_atts=2)
-    # ... and predicting!
-
+    infile = open("best_classifier.p", "rb")
+    header, tree = pickle.load(infile)
+    infile.close()
     # 2. use the tree to make a prediction
     try: 
-        return my_rf.predict(instance) # recursive function
+        return tdidt_predict(header,tree,instance)# recursive function
     except:
         return None
+
+
 
 
 if __name__ == "__main__":
