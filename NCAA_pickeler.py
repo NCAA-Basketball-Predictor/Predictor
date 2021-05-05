@@ -5,7 +5,7 @@ importlib.reload(mysklearn.myutils)
 import mysklearn.myutils as myutils
 import mysklearn.myclassifiers
 importlib.reload(mysklearn.myclassifiers)
-from mysklearn.myclassifiers import MyDecisionTreeClassifier
+from mysklearn.myclassifiers import MyRandomForestClassifier
 import mysklearn.myevaluation
 importlib.reload(mysklearn.myevaluation)
 import mysklearn.myevaluation as myevaluation
@@ -21,17 +21,16 @@ import random
 # for your project, pickle an instance MyRandomForestClassifier, MyDecisionTreeClassifier
 # for demo use header and interview_tree below
 header, data = myutils.load_from_file("input_data/NCAA_Statistics_24444.csv")
+random.seed(15)
 
 # Now, we can move to create some decision trees. Let's first create trees over the whole dataset, then
 # test upon our stratisfied k-fold splitting method.
-random.seed(13)
 
 class_col = myutils.get_column(data, header, "Win Percentage")
 data = myutils.drop_column(data, header, "Win Percentage")
 data = myutils.drop_column(data, header, "Scoring Margin")
 atts = header[1:-1]
 
-# Let's stratisfy
 X_indices = range(len(class_col))
 X_train_folds, X_test_folds = myevaluation.stratified_kfold_cross_validation(X_indices, class_col, n_splits=10)
 
@@ -39,7 +38,8 @@ y_preds = []
 y_reals = []
 correct = 0
 total = 0
-my_dt = MyDecisionTreeClassifier()
+    
+my_rf = MyRandomForestClassifier()
 for fold_index in range(len(X_train_folds)):
     X_train = []
     X_test = []
@@ -55,11 +55,12 @@ for fold_index in range(len(X_train_folds)):
         y_test.append(copy.deepcopy(class_col[test_index]))
         
     # Get a classifier in here...
+    my_rf = MyRandomForestClassifier()
 
     # Fitting...
-    my_dt.fit(X_train, y_train)
+    my_rf.fit(X_train, y_train, n_trees=50, m_trees=10, min_atts=2)
 
-packaged_object = [header, my_dt.tree]
+packaged_object = [header, my_rf]
 # pickle packaged_object
 
 outfile = open("best_classifier.p", "wb")

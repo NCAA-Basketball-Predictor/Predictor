@@ -3,17 +3,7 @@ import os
 import importlib
 import pickle 
 from flask import Flask, jsonify, request 
-import mysklearn.myutils
-importlib.reload(mysklearn.myutils)
-import mysklearn.myutils as myutils
-import mysklearn.myclassifiers
-importlib.reload(mysklearn.myclassifiers)
-from mysklearn.myclassifiers import MyRandomForestClassifier
-import mysklearn.myevaluation
-importlib.reload(mysklearn.myevaluation)
-import mysklearn.myevaluation as myevaluation
-import copy
-import random
+
 
 # make a Flask app
 app = Flask(__name__)
@@ -67,11 +57,11 @@ def tdidt_predict(header, tree, instance):
 
 def predict_winning_percentage_well(instance):
     infile = open("best_classifier.p", "rb")
-    header, tree = pickle.load(infile)
+    header, my_rf = pickle.load(infile)
     infile.close()
     # 2. use the tree to make a prediction
     try: 
-        return tdidt_predict(header,tree,instance)# recursive function
+        return my_rf.predict([instance])[0]# recursive function
     except:
         return None
 
