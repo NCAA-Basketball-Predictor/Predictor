@@ -1,3 +1,8 @@
+"""
+Programmer: Gina Sprint and Brandon Clark
+Class: CPSC 322-02, Spring 2021
+Description: This file contains the neccessary components to make requests through a url
+"""
 import requests # lib to make http requests
 import json # lib to help with parsing JSON objects
 

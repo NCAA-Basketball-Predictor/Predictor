@@ -1,3 +1,8 @@
+"""
+Programmer: Gina Sprint and Brandon Clark
+Class: CPSC 322-02, Spring 2021
+Description: Creates a flask app to be deployed to a heroku server
+"""
 # we are going to use Flask, a micro web framework
 import os
 import importlib
@@ -12,6 +17,8 @@ app = Flask(__name__)
 # one for the homepage
 @app.route("/", methods=["GET"])
 def index():
+    """ The purpose of this function is to create the home page of the website.
+    """
     # return content and a status code
     return "<h1>Welcome to my App</h1>", 200
 
@@ -19,6 +26,10 @@ def index():
 # one for the /predict 
 @app.route("/predict", methods=["GET"])
 def predict():
+    """ The purpose of this function is to predict a value based off of the random forest classifer based on entered values.
+    Returns:
+        - jsonified prediction of the given values or nothing if it does not work
+    """
     # goal is to extract the 4 attribute values from query string
     # use the request.args dictionary
     Scoring_Margin = request.args.get("Scoring Margin", "")
@@ -40,22 +51,14 @@ def predict():
         # failure!!
         return "Error making prediction", 400
 
-def tdidt_predict(header, tree, instance):
-    info_type = tree[0]
-    if info_type == "Attribute":
-        attribute_index = header.index(tree[1])
-        instance_value = instance[attribute_index]
-        # now I need to find which "edge" to follow recursively
-        for i in range(2, len(tree)):
-            value_list = tree[i]
-            if value_list[1] == instance_value:
-                # we have a match!! recurse!!
-                return tdidt_predict(header, value_list[2], instance)
-    else: # "Leaf"
-        return tree[1] # leaf class label
-
 
 def predict_winning_percentage_well(instance):
+    """ The purpose of this function is to read in the pickeled values and return the prediction
+    ARGS:
+        - instance: the testing instance
+    Returns:
+        - prediction value or nothing 
+    """
     infile = open("best_classifier.p", "rb")
     header, my_rf = pickle.load(infile)
     infile.close()

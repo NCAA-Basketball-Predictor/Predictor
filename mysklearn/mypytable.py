@@ -1,9 +1,6 @@
 """
 Programmer: Gina Sprint and Brandon Clark
 Class: CPSC 322-02, Spring 2021
-Programming Assignment #6
-03/25/2021
-I did not attempt the bonus
 Description: This program contains the functions neccessary to do data preparation.
 """
 import copy

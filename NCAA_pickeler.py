@@ -1,3 +1,8 @@
+"""
+Programmer: Gina Sprint, Brandon Clark and Ben Comer
+Class: CPSC 322-02, Spring 2021
+Description: This file creates the classifer and pickels it so that it can be deployed.
+"""
 import pickle # standard python library
 import importlib
 import mysklearn.myutils

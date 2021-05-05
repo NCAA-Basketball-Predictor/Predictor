@@ -772,6 +772,25 @@ def parallel_shuffle(mylists):
     
     return shuffled_lists
 
+def scale_1d(mylist, zero_val=None, one_val=None):
+    mymax = mylist[0]
+    mymin = mylist[1]
+    if zero_val is None and one_val is None:
+        for i in range(len(mylist)):
+            if mylist[i] > mymax:
+                mymax = mylist[i]
+            else:
+                mymin = mylist[i]
+    elif zero_val is None or one_val is None:
+        raise ValueError("Cannot have one optional arg but not the other.")
+    else:
+        mymax = one_val
+        mymin = zero_val
+        
+    # Scale...
+    for i in range(len(mylist)):
+        mylist[i] = (mylist[i] - mymin) / (mymax - mymin)
+
 def scale(mylist, zero_vals=None, one_vals=None):
     """ Scales a 2D list by attribute from 0 to 1
     
