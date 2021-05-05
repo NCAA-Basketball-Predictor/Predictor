@@ -3,6 +3,7 @@ import csv
 import copy
 import random
 import numpy as np
+import math
 
 def is_int(x):
     '''
@@ -127,6 +128,11 @@ def drop_column(table, header, column_id):
     
     return new_table
 
+def get_mean(my_list):
+    """ Gets the mean or average of a list."""
+    assert len(my_list) > 0
+    return sum(my_list) / len(my_list)
+
 def get_mode(my_list):
     """ Gets the mode in a list. Discrete. Defaults to first alphabetically.
     
@@ -220,6 +226,19 @@ def get_median(my_list):
         return (copied_list[0] + copied_list[1]) / 2
     else: # len(copied_list) is 1:
         return copied_list[0]
+    
+def get_standard_deviation(column):
+    """ The purpose of this function is to calculate the standard deviation of a given column.
+    Attributes:
+        - column(list): a list of the column to have the standard deviation calculated for.
+    Returns:
+        - std_dev(float): the std_dev value of a graph.
+    """
+    mean = sum(column) / len(column)
+    squared_mean_deviations = [(x - mean) ** 2 for x in column]
+    variance = sum(squared_mean_deviations) / len(squared_mean_deviations)
+    std_dev = math.sqrt(variance)
+    return std_dev
     
 def get_max_indices(my_list):
     """ Gets a list of the maximum values' indices in a list. 
@@ -772,25 +791,6 @@ def parallel_shuffle(mylists):
     
     return shuffled_lists
 
-def scale_1d(mylist, zero_val=None, one_val=None):
-    mymax = mylist[0]
-    mymin = mylist[1]
-    if zero_val is None and one_val is None:
-        for i in range(len(mylist)):
-            if mylist[i] > mymax:
-                mymax = mylist[i]
-            else:
-                mymin = mylist[i]
-    elif zero_val is None or one_val is None:
-        raise ValueError("Cannot have one optional arg but not the other.")
-    else:
-        mymax = one_val
-        mymin = zero_val
-        
-    # Scale...
-    for i in range(len(mylist)):
-        mylist[i] = (mylist[i] - mymin) / (mymax - mymin)
-
 def scale(mylist, zero_vals=None, one_vals=None):
     """ Scales a 2D list by attribute from 0 to 1
     
@@ -829,6 +829,25 @@ def scale(mylist, zero_vals=None, one_vals=None):
             mylist[i][j] = (mylist[i][j] - mins[j]) / (maxs[j] - mins[j])
             
     return mins, maxs
+
+def scale_1d(mylist, zero_val=None, one_val=None):
+    mymax = mylist[0]
+    mymin = mylist[1]
+    if zero_val is None and one_val is None:
+        for i in range(len(mylist)):
+            if mylist[i] > mymax:
+                mymax = mylist[i]
+            else:
+                mymin = mylist[i]
+    elif zero_val is None or one_val is None:
+        raise ValueError("Cannot have one optional arg but not the other.")
+    else:
+        mymax = one_val
+        mymin = zero_val
+        
+    # Scale...
+    for i in range(len(mylist)):
+        mylist[i] = (mylist[i] - mymin) / (mymax - mymin)
 
 def evaluate_classifier(X_train, y_train, X_test, y_test, classifier):
     """ Computes the accuracy of a given classifier given it has fit() and predict() functions.
