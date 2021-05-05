@@ -34,10 +34,14 @@ e.g. /predict?Scoring_Margin=1&efg=2&spg_bpg=2&rebound_margin=2
 
 ## Folders
 * **input_data:** 
-    * contains multiple variations of the Data that we used discretized and the orginal data
+    * contains multiple variations of the Data that we used discretized and the original data
 * **mysklearn**
     * myclassifers.py: all of our classifers that we made
     * myevaluation.py: all of the evaluation tools that we made
     * mypytable.py: Data preparation tools
     * myutils.py: reusable utility functions
     * plotutils.py: reusable graphing utility functions
+* **img**
+    * contains multiple screenshots used in the final report
+* **tree_vis**
+    * contains tree visualizations
