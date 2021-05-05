@@ -3,6 +3,19 @@
     * Brandon Clark
     * Benjamin Comer
 
+
+## Instructions:
+**On Our Heroku App**
+1. Navigate to our [homescreen](https://ncaa-predictor-app-bclark.herokuapp.com)
+2. Add path for prediction and query string
+e.g. /predict?Scoring_Margin=1&efg=2&spg_bpg=2&rebound_margin=2
+
+**Locally**
+1. Run command python3 NCAA_Predictor_app.py
+2. Navigate to local host url it gives in command line
+3. Add path for predictiona and query string
+e.g. /predict?Scoring_Margin=1&efg=2&spg_bpg=2&rebound_margin=2
+
 ## Files
 * final_report.ipynb: The final report.
 * project-proposal.ipynb: Important details about our project
