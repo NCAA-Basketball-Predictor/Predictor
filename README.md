@@ -4,6 +4,7 @@
     * Benjamin Comer
 
 ## Files
+* final_report.ipynb: The final report.
 * project-proposal.ipynb: Important details about our project
 * classification_eval.ipynb: Evaluation of our three classifers
 * best_classifer.p: a pickeled version of our best classifier.
